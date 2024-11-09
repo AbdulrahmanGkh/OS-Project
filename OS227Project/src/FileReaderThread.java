@@ -17,7 +17,7 @@ class FileReaderThread extends Thread {
         try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(":|;"); // Spliting each process's info: "ID:burstTime;memory"
+                String[] parts = line.split(":|;"); // Splitting each process's info: "ID:burstTime;memory"
                 if (parts.length == 3) {
                     int id = Integer.parseInt(parts[0]); // parts[0] = process id 
                     int burstTime = Integer.parseInt(parts[1]); // parts[1] = burst time
