@@ -1,1 +1,104 @@
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.PriorityQueue;
+import java.util.Comparator;
 
+class CPUScheduler {
+    private Queue<PCB> readyQueue;
+    private LongTermScheduler longTermScheduler;  // Reference to long-term scheduler to release memory
+
+    public CPUScheduler(Queue<PCB> readyQueue, LongTermScheduler longTermScheduler) {
+        this.readyQueue = readyQueue;
+        this.longTermScheduler = longTermScheduler;
+    }
+
+    // FCFS Scheduling
+    public void fcfsSchedule() {
+        int currentTime = 0; // Start from time 0
+        while (!readyQueue.isEmpty()) {
+            PCB process = readyQueue.poll();
+            process.state = "Running";
+            System.out.println("Executing Process " + process.id + " with Burst Time: " + process.burstTime);
+
+            // Calculate waiting and turnaround times
+            process.waitingTime = currentTime;
+            process.turnaroundTime = process.waitingTime + process.burstTime;
+
+            currentTime += process.burstTime; // Advance the time by the burst time
+
+            process.state = "Terminated";
+            System.out.println("Process " + process.id + " completed execution and terminated.");
+        }
+    }
+
+    // Round-Robin Scheduling (Quantum = 8ms)
+    public void rrSchedule() {
+        int currentTime = 0;
+        Queue<PCB> rrQueue = new LinkedList<>(readyQueue);  // Make a copy of readyQueue
+        while (!rrQueue.isEmpty()) {
+            PCB process = rrQueue.poll();
+            process.state = "Running";
+            int timeSlice = Math.min(8, process.remainingTime);
+
+            System.out.println("Executing Process " + process.id + " for " + timeSlice + "ms");
+
+            // Update the remaining burst time
+            process.remainingTime -= timeSlice;
+            currentTime += timeSlice;
+
+            // Calculate waiting and turnaround times
+            process.waitingTime = currentTime - process.burstTime;
+            process.turnaroundTime = currentTime;
+
+            if (process.remainingTime > 0) {
+                rrQueue.add(process);  // Add the process back to queue if not finished
+            } else {
+                process.state = "Terminated";
+                System.out.println("Process " + process.id + " completed execution and terminated.");
+            }
+        }
+    }
+
+    // Shortest Job First (SJF)
+    public void sjfSchedule() {
+        int currentTime = 0;
+        // Using a priority queue (min-heap) to select the shortest burst time
+        PriorityQueue<PCB> sjfQueue = new PriorityQueue<>(Comparator.comparingInt(p -> p.burstTime));
+
+        // Add all ready processes to the priority queue
+        sjfQueue.addAll(readyQueue);
+
+        while (!sjfQueue.isEmpty()) {
+            PCB process = sjfQueue.poll();
+            process.state = "Running";
+            System.out.println("Executing Process " + process.id + " with Burst Time: " + process.burstTime);
+
+            // Calculate waiting and turnaround times
+            process.waitingTime = currentTime;
+            process.turnaroundTime = process.waitingTime + process.burstTime;
+
+            currentTime += process.burstTime;
+
+            process.state = "Terminated";
+            System.out.println("Process " + process.id + " completed execution and terminated.");
+        }
+    }
+
+    // Calculate and display Average Waiting Time and Turnaround Time
+    public void calculateAverageTimes() {
+        int totalWaitingTime = 0;
+        int totalTurnaroundTime = 0;
+        int processCount = readyQueue.size();
+
+        for (PCB process : readyQueue) {
+            totalWaitingTime += process.waitingTime;
+            totalTurnaroundTime += process.turnaroundTime;
+        }
+
+        double avgWaitingTime = (double) totalWaitingTime / processCount;
+        double avgTurnaroundTime = (double) totalTurnaroundTime / processCount;
+
+        System.out.println("Average Waiting Time: " + avgWaitingTime);
+        System.out.println("Average Turnaround Time: " + avgTurnaroundTime);
+    }
+}
