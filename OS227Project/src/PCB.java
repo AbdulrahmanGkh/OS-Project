@@ -1,6 +1,6 @@
 public class PCB {
 	
-		int id;                  // Process ID
+	    int id;                  // Process ID
 	    int burstTime;           // Execution time (in milliseconds)
 	    int memoryRequired;      // Memory required in MB
 	    int waitingTime;
