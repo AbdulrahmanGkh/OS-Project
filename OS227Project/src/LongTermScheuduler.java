@@ -16,5 +16,7 @@ public class LongTermScheuduler {
             System.out.println("Process " + pcb.processId + " starts at " + pcb.waitingTime 
                                 + " and finishes at " + pcb.turnaroundTime);
         }
+
+        ...
     }
 }  
