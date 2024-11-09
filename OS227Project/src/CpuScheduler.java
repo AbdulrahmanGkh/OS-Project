@@ -1,4 +1,7 @@
+import java.util.LinkedList;
+import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.Comparator;
 
 class CPUScheduler {
     private Queue<PCB> readyQueue;
@@ -9,27 +12,55 @@ class CPUScheduler {
         this.longTermScheduler = longTermScheduler;
     }
 
-    // Simulate the execution of a process
-    public void executeProcess() {
-        if (!readyQueue.isEmpty()) {
-            PCB process = readyQueue.poll();
-            process.state = "Running";
-            System.out.println("Executing Process " + process.id + " with Burst Time: " + process.burstTime);
+   
+    public void fcfsSchedule() {
+    ...
+    }
 
-            // Burst time Simulation
-            try {
-                Thread.sleep(process.burstTime); // Sleep for the burst time duration in milliseconds
-            } catch (InterruptedException e) {
-                System.out.println("Process " + process.id + " execution was interrupted.");
-            }
+    public void rrSchedule() {
+    ...
+    }
 
-            process.state = "Terminated";
-            System.out.println("Process " + process.id + " completed execution and terminated.");
+ 
+    // Shortest Job First (SJF)
+    public void sjfSchedule() {
+    ...
+    }
 
-            // Release memory and notify the long-term scheduler
-            longTermScheduler.releaseMemory(process.memoryRequired);
+    // Method to execute a process (simulating execution time)
+    public void executeProcess(PCB process) {
+        process.state = "Running";
+        System.out.println("Executing Process " + process.id + " with Burst Time: " + process.burstTime);
+
+        // Simulate the process execution (sleeping for the burst time duration)
+        try {
+            Thread.sleep(process.burstTime);  // Sleep for the burst time in milliseconds
+        } catch (InterruptedException e) {
+            System.out.println("Process " + process.id + " execution was interrupted.");
+        }
+
+        process.state = "Terminated";
+        System.out.println("Process " + process.id + " completed execution and terminated.");
+    }
+    
+    public void executeProcessRR(PCB process) { // Execution processes for Round-Robin ( not necessory to terminate )
+        process.state = "Running";
+        System.out.println("Executing Process " + process.id + " with Burst Time: " + process.burstTime);
+
+        // Simulate the process execution (sleeping for the burst time duration)
+        try {
+            Thread.sleep(Math.min(8, process.remainingTime));  // Sleep for the burst time in milliseconds
+        } catch (InterruptedException e) {
+            System.out.println("Process " + process.id + " execution was interrupted.");
+        }
+        
+        if(process.remainingTime > 0) {
+        	
+        	process.state = "Ready";
         } else {
-            System.out.println("No processes in the Ready Queue to execute.");
+        	
+        	process.state = "Terminated";
+        	System.out.println("Process " + process.id + " completed execution and terminated.");
         }
     }
 }
