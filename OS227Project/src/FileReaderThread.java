@@ -5,14 +5,16 @@ import java.util.Queue;
 
 class FileReaderThread extends Thread {
     private Queue<PCB> jobQueue;
+    private String fileName;
 
-    public FileReaderThread(Queue<PCB> jobQueue) {
+    public FileReaderThread(Queue<PCB> jobQueue, String fileName) {
         this.jobQueue = jobQueue;
+        this.fileName = fileName;
     }
 
     @Override
     public void run() {
-        try (BufferedReader reader = new BufferedReader(new FileReader("job.txt"))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split(":|;"); // Spliting each process's info: "ID:burstTime;memory"
