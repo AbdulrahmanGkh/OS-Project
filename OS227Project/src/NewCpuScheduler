@@ -1,34 +1,84 @@
 import java.util.LinkedList;
-import java.util.Queue;
 import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.Comparator;
 
 class CPUScheduler {
     private Queue<PCB> readyQueue;
-    private LongTermScheduler longTermScheduler;  // Reference to long-term scheduler to release memory
+    private LongTermScheduler longTermScheduler; // Reference to long-term scheduler to release memory
 
     public CPUScheduler(Queue<PCB> readyQueue, LongTermScheduler longTermScheduler) {
         this.readyQueue = readyQueue;
         this.longTermScheduler = longTermScheduler;
     }
 
-    // FCFS Scheduling
+    // Private method to calculate Waiting Time for FCFS
+    private void calculateWaitingTimeFCFS(PCB process, int currentTime) {
+        process.waitingTime = currentTime;
+    }
+
+    // Private method to calculate Turnaround Time for FCFS
+    private void calculateTurnaroundTimeFCFS(PCB process) {
+        process.turnaroundTime = process.burstTime + process.waitingTime;
+    }
+
+    // Private method to calculate Average Waiting Time and Turnaround Time for FCFS
+    private void calculateAverageTimesFCFS() {
+        int totalWaitingTime = 0;
+        int totalTurnaroundTime = 0;
+        int processCount = readyQueue.size();
+
+        for (PCB process : readyQueue) {
+            totalWaitingTime += process.waitingTime;
+            totalTurnaroundTime += process.turnaroundTime;
+        }
+
+        double avgWaitingTime = (double) totalWaitingTime / processCount;
+        double avgTurnaroundTime = (double) totalTurnaroundTime / processCount;
+
+        System.out.println("Average Waiting Time (FCFS): " + avgWaitingTime + " ms");
+        System.out.println("Average Turnaround Time (FCFS): " + avgTurnaroundTime + " ms");
+    }
+
+    // FCFS Scheduling (First-Come-First-Serve)
     public void fcfsSchedule() {
         int currentTime = 0; // Start from time 0
         while (!readyQueue.isEmpty()) {
             PCB process = readyQueue.poll();
-            process.state = "Running";
-            System.out.println("Executing Process " + process.id + " with Burst Time: " + process.burstTime);
-
-            // Calculate waiting and turnaround times
-            process.waitingTime = currentTime;
-            process.turnaroundTime = process.waitingTime + process.burstTime;
-
-            currentTime += process.burstTime; // Advance the time by the burst time
-
-            process.state = "Terminated";
-            System.out.println("Process " + process.id + " completed execution and terminated.");
+            calculateWaitingTimeFCFS(process, currentTime); // Calculate Waiting Time for FCFS
+            executeProcess(process);  // Execute the process
+            calculateTurnaroundTimeFCFS(process); // Calculate Turnaround Time for FCFS
+            currentTime += process.burstTime; // Update current time after process execution
         }
+        calculateAverageTimesFCFS(); // Calculate average times for FCFS
+    }
+
+    // Private method to calculate Waiting Time for Round-Robin
+    private void calculateWaitingTimeRR(PCB process, int currentTime) {
+        process.waitingTime = currentTime;
+    }
+
+    // Private method to calculate Turnaround Time for Round-Robin
+    private void calculateTurnaroundTimeRR(PCB process, int currentTime) {
+        process.turnaroundTime = currentTime - process.waitingTime;
+    }
+
+    // Private method to calculate Average Waiting Time and Turnaround Time for Round-Robin
+    private void calculateAverageTimesRR() {
+        int totalWaitingTime = 0;
+        int totalTurnaroundTime = 0;
+        int processCount = readyQueue.size();
+
+        for (PCB process : readyQueue) {
+            totalWaitingTime += process.waitingTime;
+            totalTurnaroundTime += process.turnaroundTime;
+        }
+
+        double avgWaitingTime = (double) totalWaitingTime / processCount;
+        double avgTurnaroundTime = (double) totalTurnaroundTime / processCount;
+
+        System.out.println("Average Waiting Time (RR): " + avgWaitingTime + " ms");
+        System.out.println("Average Turnaround Time (RR): " + avgTurnaroundTime + " ms");
     }
 
     // Round-Robin Scheduling (Quantum = 8ms)
@@ -37,26 +87,48 @@ class CPUScheduler {
         Queue<PCB> rrQueue = new LinkedList<>(readyQueue);  // Make a copy of readyQueue
         while (!rrQueue.isEmpty()) {
             PCB process = rrQueue.poll();
-            process.state = "Running";
-            int timeSlice = Math.min(8, process.remainingTime);
+            int timeSlice = Math.min(8, process.remainingTime); // Use time slice of 8ms or the remaining burst time
 
-            System.out.println("Executing Process " + process.id + " for " + timeSlice + "ms");
+            calculateWaitingTimeRR(process, currentTime); // Calculate Waiting Time for RR
+            executeProcess(process);  // Execute the process
+            currentTime += timeSlice; // Update current time
 
-            // Update the remaining burst time
-            process.remainingTime -= timeSlice;
-            currentTime += timeSlice;
-
-            // Calculate waiting and turnaround times
-            process.waitingTime = currentTime - process.burstTime;
-            process.turnaroundTime = currentTime;
-
+            // If process is not completed, put it back into the ready queue
             if (process.remainingTime > 0) {
-                rrQueue.add(process);  // Add the process back to queue if not finished
-            } else {
-                process.state = "Terminated";
-                System.out.println("Process " + process.id + " completed execution and terminated.");
+                rrQueue.add(process);
             }
+
+            calculateTurnaroundTimeRR(process, currentTime); // Calculate Turnaround Time for RR
         }
+        calculateAverageTimesRR(); // Calculate average times for Round-Robin
+    }
+
+    // Private method to calculate Waiting Time for Shortest Job First (SJF)
+    private void calculateWaitingTimeSJF(PCB process, int currentTime) {
+        process.waitingTime = currentTime;
+    }
+
+    // Private method to calculate Turnaround Time for Shortest Job First (SJF)
+    private void calculateTurnaroundTimeSJF(PCB process) {
+        process.turnaroundTime = process.burstTime + process.waitingTime;
+    }
+
+    // Private method to calculate Average Waiting Time and Turnaround Time for SJF
+    private void calculateAverageTimesSJF() {
+        int totalWaitingTime = 0;
+        int totalTurnaroundTime = 0;
+        int processCount = readyQueue.size();
+
+        for (PCB process : readyQueue) {
+            totalWaitingTime += process.waitingTime;
+            totalTurnaroundTime += process.turnaroundTime;
+        }
+
+        double avgWaitingTime = (double) totalWaitingTime / processCount;
+        double avgTurnaroundTime = (double) totalTurnaroundTime / processCount;
+
+        System.out.println("Average Waiting Time (SJF): " + avgWaitingTime + " ms");
+        System.out.println("Average Turnaround Time (SJF): " + avgTurnaroundTime + " ms");
     }
 
     // Shortest Job First (SJF)
@@ -70,35 +142,27 @@ class CPUScheduler {
 
         while (!sjfQueue.isEmpty()) {
             PCB process = sjfQueue.poll();
-            process.state = "Running";
-            System.out.println("Executing Process " + process.id + " with Burst Time: " + process.burstTime);
-
-            // Calculate waiting and turnaround times
-            process.waitingTime = currentTime;
-            process.turnaroundTime = process.waitingTime + process.burstTime;
-
-            currentTime += process.burstTime;
-
-            process.state = "Terminated";
-            System.out.println("Process " + process.id + " completed execution and terminated.");
+            calculateWaitingTimeSJF(process, currentTime); // Calculate Waiting Time for SJF
+            executeProcess(process);  // Execute the process
+            currentTime += process.burstTime; // Update current time after process execution
+            calculateTurnaroundTimeSJF(process); // Calculate Turnaround Time for SJF
         }
+        calculateAverageTimesSJF(); // Calculate average times for Shortest Job First
     }
 
-    // Calculate and display Average Waiting Time and Turnaround Time
-    public void calculateAverageTimes() {
-        int totalWaitingTime = 0;
-        int totalTurnaroundTime = 0;
-        int processCount = readyQueue.size();
+    // Method to execute a process (simulating execution time)
+    public void executeProcess(PCB process) {
+        process.state = "Running";
+        System.out.println("Executing Process " + process.id + " with Burst Time: " + process.burstTime);
 
-        for (PCB process : readyQueue) {
-            totalWaitingTime += process.waitingTime;
-            totalTurnaroundTime += process.turnaroundTime;
+        // Simulate the process execution (sleeping for the burst time duration)
+        try {
+            Thread.sleep(process.burstTime);  // Sleep for the burst time in milliseconds
+        } catch (InterruptedException e) {
+            System.out.println("Process " + process.id + " execution was interrupted.");
         }
 
-        double avgWaitingTime = (double) totalWaitingTime / processCount;
-        double avgTurnaroundTime = (double) totalTurnaroundTime / processCount;
-
-        System.out.println("Average Waiting Time: " + avgWaitingTime);
-        System.out.println("Average Turnaround Time: " + avgTurnaroundTime);
+        process.state = "Terminated";
+        System.out.println("Process " + process.id + " completed execution and terminated.");
     }
 }
