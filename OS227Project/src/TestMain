@@ -1,0 +1,42 @@
+import java.util.LinkedList;
+import java.util.Queue;
+
+public class Main {
+
+    public static void main(String[] args) {
+        
+        // Use LinkedList to instantiate a Queue
+        Queue<PCB> jobQueue = new LinkedList<PCB>();
+        Queue<PCB> readyQueue = new LinkedList<PCB>();
+
+        // Assuming you have a constructor for FileReaderThread that takes Queue and file name
+        FileReaderThread th1 = new FileReaderThread(jobQueue, "test.txt");
+        LongTermScheduler th2 = new LongTermScheduler(jobQueue , readyQueue);
+        
+        try {
+            th1.start(); 
+            th2.start();
+            th2.join();  
+            th1.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();  // Print stack trace to better handle exceptions
+        }
+        
+        CPUScheduler.FCFS(readyQueue);
+
+        // Call the method to print readyQueue contents
+       // printReadyQueueContents(readyQueue);
+    }
+
+    // Method to print contents of readyQueue
+    public static void printReadyQueueContents(Queue<PCB> readyQueue) {
+        if (readyQueue.isEmpty()) {
+            System.out.println("Ready Queue is empty.");
+        } else {
+            System.out.println("Ready Queue Contents:");
+            for (PCB pcb : readyQueue) {
+                System.out.println(pcb);  // Calls the toString() method of PCB
+            }
+        }
+    }
+}
