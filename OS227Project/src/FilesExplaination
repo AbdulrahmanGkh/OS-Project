@@ -1,0 +1,46 @@
+package test;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+
+public class Main {
+	
+	
+	public static void main(String[] args) {
+		
+		/*String[] processes = { "1:20;90" , "2:100;110" , "3:15;20" , "4:200;500" }; Ex: 4 processes ID:BURST-TIME;MEMORY-REQUIERED
+		
+		try { // HANDLING BufferedWriter/Reader is a must.
+		BufferedWriter writer = new BufferedWriter(new FileWriter("test.txt"));
+		for(String process : processes) // Loop on processes array and load each element on var process.
+			writer.write(process + "\n"); // Write the temp var process String in file "text.txt". ( it comes without /n! , handle that )
+		}catch(IOException e) {
+			e.printStackTrace();
+		}
+		*/
+		try {
+		BufferedReader reader = new BufferedReader(new FileReader("test.txt"));
+		
+		String line;
+		String[] parts;
+		while((line = reader.readLine()) != null){
+			parts = line.trim().split(":|;"); 
+			/* String.trim() to clean all spaces only (simple) , regarding to .split( List of delimeters between strings "..." )
+			'|' is the delimeter between delimeters , here delimeters are : ; respectivly , split them by '|' */
+			System.out.println("Process Id: " + parts[0]); 
+			System.out.println("Process BurstTime: " + parts[1]);
+			System.out.println("Process MemoryRequired: " + parts[2]);
+		}
+		
+		//writer.close();
+		reader.close();
+		System.out.println();
+		}catch(IOException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+}
