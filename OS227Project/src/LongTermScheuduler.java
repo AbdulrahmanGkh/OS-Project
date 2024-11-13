@@ -1,7 +1,7 @@
 import java.util.Iterator;
 import java.util.Queue;
 
-class LongTermScheduler extends Thread {
+class LongTermScheduler extends Thread { // INFINITE LOOOOOOOOOOOOOOOOOOOOOOOOOP Class
     private Queue<PCB> jobQueue;
     private Queue<PCB> readyQueue;
     private final int totalMemory = 1024;
