@@ -1,30 +1,27 @@
-import java.util.LinkedList;
-import java.util.PriorityQueue;
 import java.util.Queue;
-import java.util.Comparator;
 
 class CPUScheduler {
-    private Queue<PCB> readyQueue;
-    private LongTermScheduler longTermScheduler; // Reference to long-term scheduler to release memory
-
-    public CPUScheduler(Queue<PCB> readyQueue, LongTermScheduler longTermScheduler) {
-        this.readyQueue = readyQueue;
-        this.longTermScheduler = longTermScheduler;
+  
+    public static void FCFS(Queue<PCB> readyQueue) {
+        int currentTime = 0;
+        System.out.println("Process ID | Burst Time | Completion Time | Turnaround Time | Waiting Time");
+        for (PCB p : readyQueue) {
+            p.turnaroundTime = currentTime + p.burstTime;
+            p.waitingTime = p.turnaroundTime - p.burstTime;
+            currentTime = p.turnaroundTime;
+            System.out.printf("%9d | %12d | %10d | %15d | %16d | %12d\n", p.id, p.burstTime, p.turnaroundTime, p.waitingTime);
+        }
     }
 
    
-    public void fcfsSchedule() {
-    ...
-    }
-
+    // Round-Robin Scheduling (Quantum = 8ms)
     public void rrSchedule() {
-    ...
+       
     }
 
- 
     // Shortest Job First (SJF)
     public void sjfSchedule() {
-    ...
+       
     }
 
     // Method to execute a process (simulating execution time)
@@ -43,7 +40,7 @@ class CPUScheduler {
         System.out.println("Process " + process.id + " completed execution and terminated.");
     }
     
-    public void executeProcessRR(PCB process) { // Execution processes for Round-Robin ( not necessory to terminate )
+    public void executeProcessRR(PCB process) {
         process.state = "Running";
         System.out.println("Executing Process " + process.id + " with Burst Time: " + process.burstTime);
 
