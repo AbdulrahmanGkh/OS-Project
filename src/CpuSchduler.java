@@ -12,21 +12,27 @@ class CPUScheduler {
         this.readyQueue = readyQueue;
     }
 
+    
+    //Approved by Professor AbdulRahman
     private boolean canExecute(PCB process) {
         return (usedMemory + process.memoryRequired) <= totalMemory;
-    }
+    } 
 
+    //Approved by Professor AbdulRahman
     private void allocateMemory(PCB process) {
         usedMemory += process.memoryRequired;
-        System.out.println("Allocated memory for Process " + process.id + ": " + process.memoryRequired + " MB");
-    }
+        System.out.println("Allocated memory for Process " + process.id + ": " + process.memoryRequired + " MB");//why we print this messege?
+    } 
 
+    
+    //Approved by Professor AbdulRahman
     private void releaseMemory(PCB process) {
         usedMemory -= process.memoryRequired;
-        System.out.println("Released memory for Process " + process.id + ": " + process.memoryRequired + " MB");
-    }
+        System.out.println("Released memory for Process " + process.id + ": " + process.memoryRequired + " MB"); //why print?
+    } 
 
     // First-Come-First-Serve (FCFS) Scheduling
+    //Approved by Professor AbdulRahman, yet im not sure what should we print in terms of time
     public void fcfsSchedule() {
         int currentTime = 0;
         int totalWaitingTime = 0;
@@ -62,9 +68,16 @@ class CPUScheduler {
         } else {
             System.out.println("No processes were executed in FCFS.");
         }
-    }
+    } 
+    
 
     // Shortest Job First (SJF) Scheduling
+
+     
+        //Rejected by Professor AbdulRahman
+        // Using poll removes the process from sjfQueue when memory is unavailable.
+        // This prevents the process from being re-added.
+       // Use peek instead to keep the process in the queue.
     public void sjfSchedule() {
         int currentTime = 0;
         int totalWaitingTime = 0;
@@ -100,8 +113,8 @@ class CPUScheduler {
             System.out.println("Average Turnaround Time (SJF): " + avgTurnaroundTime + " ms");
         } else {
             System.out.println("No processes were executed in SJF.");
-        }
-    }
+        } 
+       
 
     // Round-Robin (RR) Scheduling with Quantum = 8ms
     public void rrSchedule() {
