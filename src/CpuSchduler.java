@@ -78,6 +78,7 @@ class CPUScheduler {
         // Using poll removes the process from sjfQueue when memory is unavailable.
         // This prevents the process from being re-added.
        // Use peek instead to keep the process in the queue.
+      //مرفوضة يا معلم 
     public void sjfSchedule() {
         int currentTime = 0;
         int totalWaitingTime = 0;
@@ -124,7 +125,8 @@ class CPUScheduler {
         int totalTurnaroundTime = 0;
         int processCount = 0;
 
-        Queue<PCB> rrQueue = new LinkedList<>(readyQueue);
+        //why here linkedList instaed of queue or Array
+        Queue<PCB> rrQueue = new LinkedList<>(readyQueue); // Declare rrQueue as a Queue for flexibility (any queue implementation can be used) Initialize it as a LinkedList because LinkedList efficiently handles frequent additions and removals.
 
         while (!rrQueue.isEmpty()) {
             PCB process = rrQueue.poll();
@@ -134,7 +136,7 @@ class CPUScheduler {
                 calculateWaitingTimeRR(process, currentTime);
                 executeProcessWithTimeSlice(process, timeSlice);
                 releaseMemory(process);
-                currentTime += timeSlice;
+                currentTime += timeSlice; //وقفت هنا
 
                 if (process.remainingTime > 0) {
                     rrQueue.add(process);  // Re-queue if not yet completed
@@ -204,20 +206,34 @@ class CPUScheduler {
         process.turnaroundTime = process.burstTime + process.waitingTime;
     }
 
+    
+   //This is not complete, also we have to add variable for Last excution time
+    // we have to Declare Last excution time in PCB
+    //مرفوضة يامعلم
+     //Rejected by Professor AbdulRahman
     private void calculateWaitingTimeRR(PCB process, int currentTime) {
         if (process.waitingTime == 0) {
             process.waitingTime = currentTime;
         }
     }
 
+
+
+    //مرفوضة يا معلم
+     //Rejected by Professor AbdulRahman
+    //process.turnaroundTime = currentTime;
     private void calculateTurnaroundTimeRR(PCB process, int currentTime) {
         process.turnaroundTime = currentTime - process.waitingTime;
     }
 
+    
+
+//Approved by Professor AbdulRahman
     private void calculateWaitingTimeSJF(PCB process, int currentTime) {
         process.waitingTime = currentTime;
     }
 
+    //Approved by Professor AbdulRahman
     private void calculateTurnaroundTimeSJF(PCB process) {
         process.turnaroundTime = process.burstTime + process.waitingTime;
     }
