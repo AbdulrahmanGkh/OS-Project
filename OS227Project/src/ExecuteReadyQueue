@@ -1,0 +1,173 @@
+import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.PriorityQueue;
+import java.util.Queue;
+
+public class ExecuteReadyQueue {
+    private Queue<PCB> readyQueue;
+    private int quantum = 8; // Default time slice for Round Robin
+
+    public ExecuteReadyQueue(Queue<PCB> readyQueue) {
+        this.readyQueue = readyQueue;
+    }
+
+    // First-Come-First-Serve (FCFS) Scheduling
+    public void fcfsSchedule() {
+        int currentTime = 0;
+        int totalWaitingTime = 0;
+        int totalTurnaroundTime = 0;
+        int processCount = 0;
+
+        while (!readyQueue.isEmpty()) {
+            PCB process = readyQueue.poll();
+            calculateWaitingTimeFCFS(process, currentTime);
+            executeProcess(process);
+            calculateTurnaroundTimeFCFS(process);
+
+            totalWaitingTime += process.waitingTime;
+            totalTurnaroundTime += process.turnaroundTime;
+            processCount++;
+
+            currentTime += process.burstTime;
+        }
+
+        printAverages("FCFS", totalWaitingTime, totalTurnaroundTime, processCount);
+    }
+
+    // Shortest Job First (SJF) Scheduling
+    public void sjfSchedule() {
+        int currentTime = 0;
+        int totalWaitingTime = 0;
+        int totalTurnaroundTime = 0;
+        int processCount = 0;
+
+
+        PriorityQueue<PCB> sjfQueue = new PriorityQueue<>(Comparator.comparingInt(p -> p.burstTime));
+        sjfQueue.addAll(readyQueue);
+
+        while (!sjfQueue.isEmpty()) {
+            PCB process = sjfQueue.poll();
+            calculateWaitingTimeSJF(process, currentTime);
+            executeProcess(process);
+            calculateTurnaroundTimeSJF(process);
+
+            totalWaitingTime += process.waitingTime;
+            totalTurnaroundTime += process.turnaroundTime;
+            processCount++;
+
+            currentTime += process.burstTime;
+        }
+
+        printAverages("SJF", totalWaitingTime, totalTurnaroundTime, processCount);
+    }
+
+    // Round-Robin (RR) Scheduling
+    public void rrSchedule() {
+        int currentTime = 0;
+        int totalWaitingTime = 0;
+        int totalTurnaroundTime = 0;
+        int processCount = 0;
+        int lastExecutionTime = 0;
+
+        Queue<PCB> rrQueue = new LinkedList<>(readyQueue);
+
+        while (!rrQueue.isEmpty()) {
+            PCB process = rrQueue.poll();
+            int timeSlice = Math.min(quantum, process.remainingTime);
+            calculateWaitingTimeRR(process, currentTime);
+            executeProcessWithTimeSlice(process, timeSlice);
+            currentTime += timeSlice;
+
+            if (process.remainingTime > 0) {
+                rrQueue.add(process);
+            } else {
+                calculateTurnaroundTimeRR(process, currentTime);
+                totalWaitingTime += process.waitingTime;
+                totalTurnaroundTime += process.turnaroundTime;
+                processCount++;
+            }
+        }
+
+        printAverages("RR", totalWaitingTime, totalTurnaroundTime, processCount);
+    }
+
+    // Execute process with time slice (for Round-Robin)
+    private void executeProcessWithTimeSlice(PCB process, int timeSlice) {
+        process.state = "Running";
+        System.out.println("Executing Process " + process.id + " with Time Slice: " + timeSlice + " ms");
+        try {
+            Thread.sleep(timeSlice);
+        } catch (InterruptedException e) {
+            System.out.println("Process " + process.id + " execution was interrupted.");
+        }
+
+        process.remainingTime -= timeSlice;
+        if (process.remainingTime <= 0) {
+            process.state = "Terminated";
+            System.out.println("Process " + process.id + " completed execution and terminated.");
+        } else {
+            process.state = "Waiting";
+            System.out.println("Process " + process.id + " paused with Remaining Time: " + process.remainingTime);
+        }
+    }
+
+    // Simulate execution of a process
+    private void executeProcess(PCB process) {
+        process.state = "Running";
+        System.out.println("Executing Process " + process.id + " with Burst Time: " + process.burstTime);
+        try {
+            Thread.sleep(process.burstTime);
+        } catch (InterruptedException e) {
+            System.out.println("Process " + process.id + " execution was interrupted.");
+        }
+        process.state = "Terminated";
+        System.out.println("Process " + process.id + " has completed execution and is now Terminated.");
+    }
+
+    // Calculate waiting time for FCFS
+    private void calculateWaitingTimeFCFS(PCB process, int currentTime) {
+        process.waitingTime = currentTime;
+    }
+
+    // Calculate turnaround time for FCFS
+    private void calculateTurnaroundTimeFCFS(PCB process) {
+        process.turnaroundTime = process.burstTime + process.waitingTime;
+    }
+
+    // Calculate waiting time for SJF
+    private void calculateWaitingTimeSJF(PCB process, int currentTime) {
+        process.waitingTime = currentTime;
+    }
+
+    // Calculate turnaround time for SJF
+    private void calculateTurnaroundTimeSJF(PCB process) {
+        process.turnaroundTime = process.burstTime + process.waitingTime;
+    }
+
+    // Calculate waiting time for RR
+    private void calculateWaitingTimeRR(PCB process, int currentTime) {
+        if (process.lastExecutionTime != -1) {
+            process.waitingTime += currentTime - process.lastExecutionTime;
+        } else {
+            process.waitingTime = currentTime;
+        }
+        process.lastExecutionTime = currentTime;
+    }
+
+    // Calculate turnaround time for RR
+    private void calculateTurnaroundTimeRR(PCB process, int currentTime) {
+        process.turnaroundTime = currentTime;
+    }
+
+    // Print average waiting and turnaround times
+    private void printAverages(String algorithm, int totalWaitingTime, int totalTurnaroundTime, int processCount) {
+        if (processCount > 0) {
+            double avgWaitingTime = (double) totalWaitingTime / processCount;
+            double avgTurnaroundTime = (double) totalTurnaroundTime / processCount;
+            System.out.println("Average Waiting Time (" + algorithm + "): " + avgWaitingTime + " ms");
+            System.out.println("Average Turnaround Time (" + algorithm + "): " + avgTurnaroundTime + " ms");
+        } else {
+            System.out.println("No processes were executed in " + algorithm + ".");
+        }
+    }
+}
