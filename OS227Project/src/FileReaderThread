@@ -17,33 +17,26 @@ public class FileReaderThread extends Thread {
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = br.readLine()) != null) {
-                try {
-                    // Split the line using ":" and ";" as delimiters
-                    String[] parts = line.split(":|;");
-                    if (parts.length != 3) {
-                        System.out.println("Invalid line format, skipping: " + line);
-                        continue; // Skip invalid lines
-                    }
-
-                    // Parse process details
-                    int id = Integer.parseInt(parts[0].trim());
-                    int burstTime = Integer.parseInt(parts[1].trim());
-                    int memoryRequired = Integer.parseInt(parts[2].trim());
-
-                    // Create PCB object and add to jobQueue
-                    PCB job = new PCB(id, burstTime, memoryRequired);
-                    synchronized (jobQueue) {
-                        jobQueue.add(job);
-                        jobQueue.notifyAll(); // Notify that a new job is available
-                    }
-                    System.out.println("Job " + id + " added to JobQueue: Burst Time = " 
-                        + burstTime + ", Memory = " + memoryRequired + " MB");
-                } catch (NumberFormatException e) {
-                    System.out.println("Error parsing line, skipping: " + line);
+                String[] parts = line.split(":|;");
+                if (parts.length != 3) {
+                    System.out.println("Invalid line format, skipping: " + line);
+                    continue;
                 }
+
+                int id = Integer.parseInt(parts[0].trim());
+                int burstTime = Integer.parseInt(parts[1].trim());
+                int memoryRequired = Integer.parseInt(parts[2].trim());
+                if ( memoryRequired>1024)
+                	continue;
+                PCB job = SystemCalls.createPCB(id, burstTime, memoryRequired); // استخدم SystemCalls لإنشاء العملية
+                synchronized (jobQueue) {
+                jobQueue.add(job);
+                   jobQueue.notifyAll();
+                }
+                System.out.println("Job " + id + " added to JobQueue: Burst Time = " + burstTime + " ms, Memory = " + memoryRequired + " MB.");
             }
         } catch (IOException e) {
-            System.out.println("Error reading the file: " + e.getMessage());
+            System.out.println("Error reading file: " + e.getMessage());
         }
     }
 }
