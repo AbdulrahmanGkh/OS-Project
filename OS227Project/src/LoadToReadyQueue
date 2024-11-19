@@ -1,62 +1,29 @@
 import java.util.Queue;
 
 public class LoadToReadyQueue extends Thread {
-   private Queue<PCB> jobQueue;      // Queue for jobs waiting to be processed
-    private Queue<PCB> readyQueue;    // Queue for jobs ready for execution
-    private int totalMemory = 1024;   // Total available memory (in MB)
-    private int usedMemory = 0;       // Memory currently in use (in MB)
+    private Queue<PCB> jobQueue;
 
-    public LoadToReadyQueue(Queue<PCB> jobQueue, Queue<PCB> readyQueue) {
+    public LoadToReadyQueue(Queue<PCB> jobQueue) {
         this.jobQueue = jobQueue;
-        this.readyQueue = readyQueue;
     }
 
-    // Check if there is enough memory to load the job
-    private boolean hasEnoughMemory(int requiredMemory) {
-        return (usedMemory + requiredMemory) <= totalMemory;
-    }
-
-    // Allocate memory for the job
-    public void allocateMemory(int size) {
-        usedMemory += size;
-        System.out.println("Allocated " + size + " MB. Used memory: " + usedMemory + "/" + totalMemory);
-    }
-
-    // Release memory after the job is executed
-    public void releaseMemory(int size) {
-        usedMemory -= size;
-        System.out.println("Released " + size + " MB. Used memory: " + usedMemory + "/" + totalMemory);
-    }
-
-   
-    
     @Override
     public void run() {
         while (true) {
-            synchronized (readyQueue) {
-                synchronized (jobQueue) {
-                    if (!jobQueue.isEmpty()) {
-                        PCB job = jobQueue.peek(); // Check the first job in the queue
-                        if (hasEnoughMemory(job.memoryRequired)) {
-                            jobQueue.poll();       // Remove the job from jobQueue
-                            allocateMemory(job.memoryRequired); // Allocate memory
-                            job.state = "Ready";   // Change job state to "Ready"
-                            readyQueue.add(job);   // Add the job to readyQueue
-                            System.out.println("Job " + job.id + " moved to ReadyQueue.");
-                            readyQueue.notifyAll(); // Notify waiting threads
-                        } else {
-                            System.out.println("Not enough memory for Job " + job.id + ". Waiting...");
-                        }
-                    } else {
-                        // Stop the thread if jobQueue is empty and all jobs have been processed
-                        System.out.println("JobQueue is empty. LoadToReadyQueue is stopping.");
-                        return;
+            synchronized (jobQueue) {
+                if (!jobQueue.isEmpty()) {
+                    PCB job = jobQueue.peek();
+                    if (SystemCalls.loadJobToMemory(job, Main.readyQueue, Main.availableMemory)) {
+                        jobQueue.poll(); // Remove job from jobQueue if successfully loaded
                     }
+                } else {
+                    System.out.println("JobQueue is empty. LoadToReadyQueue is stopping.");
+                    return;
                 }
             }
 
             try {
-                Thread.sleep(100); // Small delay to simulate processing time
+                Thread.sleep(100); // Simulate delay
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return;
