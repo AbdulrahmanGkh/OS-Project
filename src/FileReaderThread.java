@@ -17,27 +17,43 @@ public class FileReaderThread extends Thread {
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = br.readLine()) != null) {
-                String[] parts = line.split(":|;");
-                if (parts.length != 3) {
-                    System.out.println("Invalid line format, skipping: " + line);
-                    continue;
-                }
+                // Check if the line contains exactly one colon and one semicolon
+                if (line.contains(":") && line.contains(";") && line.indexOf(":") < line.indexOf(";")) {
+                    String[] parts = line.split(":|;");
 
-                int id = Integer.parseInt(parts[0].trim());
-                int burstTime = Integer.parseInt(parts[1].trim());
-                int memoryRequired = Integer.parseInt(parts[2].trim());
+                    // Only accept lines with exactly three parts (id, burstTime, memoryRequired)
+                    if (parts.length == 3) {
+                        try {
+                            int id = Integer.parseInt(parts[0].trim());
+                            int burstTime = Integer.parseInt(parts[1].trim());
+                            int memoryRequired = Integer.parseInt(parts[2].trim());
 
-                if (memoryRequired > 1024) { // Handling OverSize Processes (greater than 1024MB)
-                    System.out.println("Job " + id + " isn't supported due to memory limit.");
-                    continue;
-                }
+                            // Check if memory is within the valid range (1024 MB limit)
+                            if (memoryRequired > 1024) {
+                                System.out.println("Job " + id + " isn't supported due to memory limit.");
+                                continue;
+                            }
 
-                PCB job = SystemCalls.createPCB(id, burstTime, memoryRequired); // Use SystemCalls to create the PCB
-                synchronized (jobQueue) {
-                    jobQueue.add(job);
-                    jobQueue.notifyAll(); // Notify other threads waiting on jobQueue
+                            // Create PCB and add it to the jobQueue
+                            PCB job = SystemCalls.createPCB(id, burstTime, memoryRequired);
+                            synchronized (jobQueue) {
+                                jobQueue.add(job);
+                                jobQueue.notifyAll(); // Notify other threads waiting on jobQueue
+                            }
+
+                            System.out.println("Job " + id + " added to JobQueue: Burst Time = " + burstTime + " ms, Memory = " + memoryRequired + " MB.");
+
+                        } catch (NumberFormatException e) {
+                            System.out.println("Invalid number format in line, skipping: " + line);
+                        }
+                    } else {
+                        // Skip lines with incorrect number of parts (id:bt:mr should have exactly 3 parts)
+                        System.out.println("Invalid number format in line, skipping: " + line);
+                    }
+                } else {
+                    // Skip lines that do not have exactly one colon and one semicolon
+                    System.out.println("Invalid number format in line, skipping: " + line);
                 }
-                System.out.println("Job " + id + " added to JobQueue: Burst Time = " + burstTime + " ms, Memory = " + memoryRequired + " MB.");
             }
         } catch (IOException e) {
             System.out.println("Error reading file: " + e.getMessage());
