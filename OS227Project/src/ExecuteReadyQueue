@@ -4,101 +4,235 @@ import java.util.Queue;
 import java.util.Comparator;
 
 public class ExecuteReadyQueue {
+    private Queue<PCB> jobQueue;
     private Queue<PCB> readyQueue;
-    private int quantum; // الوقت المخصص لكل عملية في Round-Robin
+    private Queue<PCB> PriorityQueue ;
+    private MemoryManagment memory;
 
-    public ExecuteReadyQueue(Queue<PCB> readyQueue, int quantum) {
+    public ExecuteReadyQueue(Queue<PCB> jobQueue, Queue<PCB> readyQueue, int quantum, MemoryManagment memory) {
+        this.jobQueue = jobQueue;
         this.readyQueue = readyQueue;
-        this.quantum = quantum;
+        this.memory = memory;
     }
 
     // First-Come-First-Serve (FCFS) Scheduling
     public void fcfsSchedule() {
         int currentTime = 0;
+        int totalWaitingTime = 0;
+        int totalTurnaroundTime = 0;
+        int processCounter = 0;
 
-        while (!readyQueue.isEmpty()) {
-            PCB process = readyQueue.poll(); //peak instaed of poll
-            process.setState("RUNNING");
-            System.out.println("Executing Process " + process.id + " with Burst Time: " + process.burstTime);
+        // طباعة رأس الجدول
+        System.out.println("Job ID    Start Time     End Time       Burst Time     Waiting Time   Turnaround Time");
+        System.out.println("---------------------------------------------------------------------------------------");
 
-            try {
-                Thread.sleep(process.burstTime);
-            } catch (InterruptedException e) {
-                System.out.println("Process " + process.id + " execution interrupted.");
+        if (!readyQueue.isEmpty()) {
+            while (!readyQueue.isEmpty()) {
+                PCB process = readyQueue.poll(); // Get the first job from the ready queue
+                process.changeState("RUNNING");
+
+                int startTime = currentTime; // وقت بداية التنفيذ
+                int endTime = startTime + process.burstTime; // وقت نهاية التنفيذ
+
+                // تنفيذ العملية
+                try {
+                    Thread.sleep(process.burstTime);
+                } catch (InterruptedException e) {
+                    System.out.println("Process " + process.id + " execution interrupted.");
+                }
+
+                // تحرير الذاكرة بعد التنفيذ
+                memory.releaseMemory(process.memoryRequired);
+
+                // حساب أوقات الانتظار والالتفاف
+                int waitingTime = startTime; // Waiting Time
+                int turnaroundTime = endTime; // Turnaround Time
+
+                // تحديث القيم في الـ PCB
+                process.setWaitingTime(waitingTime);
+                process.setTurnaroundTime(turnaroundTime);
+
+                // طباعة النتائج للجدول
+                System.out.printf("%-10d %-15d %-15d %-15d %-15d %-15d\n",
+                        process.id, startTime, endTime, process.burstTime, waitingTime, turnaroundTime);
+
+                // تحديث الوقت الحالي
+                currentTime += process.burstTime;
+
+                // تحديث الأوقات الإجمالية
+                totalWaitingTime += process.waitingTime;
+                totalTurnaroundTime += process.turnaroundTime;
+                processCounter++;
+
+                // إخطار الخيوط الأخرى
+                synchronized (jobQueue) {
+                    jobQueue.notifyAll();  // Notify waiting thread to check memory
+                }
             }
-
-            currentTime += process.burstTime;
-            process.setState("TERMINATED");
-            SystemCalls.updateJobTimes(process, currentTime);
-            SystemCalls.releaseMemory(process, readyQueue,Main.availableMemory); // تحرير الذاكرة بعد التنفيذ
+        } else {
+            System.out.println("Your readyQueue is empty.");
         }
 
+        // طباعة المتوسطات
+        System.out.println("---------------------------------------------------------------------------------------");
+        System.out.printf("Averages   %-15s %-15s %-15s %-15.2f %-15.2f\n",
+                "", "", "", (double) totalWaitingTime / processCounter, (double) totalTurnaroundTime / processCounter);
+        System.out.println("---------------------------------------------------------------------------------------");
+        System.out.println("process number = "+processCounter);
         System.out.println("FCFS Scheduling completed.");
     }
 
-    // Shortest Job First (SJF) Scheduling
+
+    
     public void sjfSchedule() {
         int currentTime = 0;
+        int totalWaitingTime = 0;
+        int totalTurnaroundTime = 0;
+        int processCounter = 0;
 
-        // ترتيب العمليات بناءً على أقل Burst Time باستخدام PriorityQueue
+        // الانتظار حتى يتم ملء readyQueue
+        synchronized (readyQueue) {
+            while (readyQueue.isEmpty()) {
+                try {
+                    System.out.println("Waiting for readyQueue to be filled...");
+                    readyQueue.wait(); // انتظر حتى يتم إخطارك بأن readyQueue ممتلئة
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    System.out.println("SJF Schedule interrupted.");
+                    return;
+                }
+            }
+        }
+
+        // إنشاء PriorityQueue وترتيب العمليات
         PriorityQueue<PCB> sjfQueue = new PriorityQueue<>(Comparator.comparingInt(p -> p.burstTime));
         sjfQueue.addAll(readyQueue);
 
-        while (!sjfQueue.isEmpty()) {
-            PCB process = sjfQueue.poll();
-            process.setState("RUNNING");
-            System.out.println("Executing Process " + process.id + " with Burst Time: " + process.burstTime);
+        // طباعة رأس الجدول
+        System.out.println("Job ID    Start Time     End Time       Burst Time     Waiting Time   Turnaround Time");
+        System.out.println("---------------------------------------------------------------------------------------");
 
+        // معالجة العمليات في PriorityQueue
+        while (!sjfQueue.isEmpty()) {
+            PCB process = sjfQueue.poll(); // استخراج العملية ذات أقل Burst Time
+            process.changeState("RUNNING");
+
+            int startTime = currentTime; // وقت بداية التنفيذ
+            int endTime = startTime + process.burstTime; // وقت نهاية التنفيذ
+
+            // تنفيذ العملية
             try {
-                Thread.sleep(process.burstTime);
+                Thread.sleep(process.burstTime); // محاكاة وقت التنفيذ
             } catch (InterruptedException e) {
                 System.out.println("Process " + process.id + " execution interrupted.");
             }
 
+            // حساب أوقات الانتظار والالتفاف
+            int waitingTime = startTime; // Waiting Time
+            int turnaroundTime = endTime; // Turnaround Time
+
+            // تحديث القيم في الـ PCB
+            process.setWaitingTime(waitingTime);
+            process.setTurnaroundTime(turnaroundTime);
+
+            // طباعة النتائج للجدول
+            System.out.printf("%-10d %-15d %-15d %-15d %-15d %-15d\n",
+                    process.id, startTime, endTime, process.burstTime, waitingTime, turnaroundTime);
+
+            // تحديث الوقت الحالي
             currentTime += process.burstTime;
-            process.setState("TERMINATED");
-            SystemCalls.updateJobTimes(process, currentTime);
-            SystemCalls.releaseMemory(process, readyQueue, Main.availableMemory); // تحرير الذاكرة بعد التنفيذ
+
+            // تحديث الأوقات الإجمالية
+            totalWaitingTime += waitingTime;
+            totalTurnaroundTime += turnaroundTime;
+            processCounter++;
+
+            // تحرير الذاكرة بعد التنفيذ
+            memory.releaseMemory(process.memoryRequired);
+
+            // إخطار الخيوط الأخرى إذا كانت تعتمد على تحرير الذاكرة
+            synchronized (jobQueue) {
+                jobQueue.notifyAll(); // Notify waiting thread to check memory
+            }
         }
 
+        // طباعة المتوسطات
+        System.out.println("---------------------------------------------------------------------------------------");
+        System.out.printf("Averages   %-15s %-15s %-15s %-15.2f %-15.2f\n",
+                "", "", "", (double) totalWaitingTime / processCounter, (double) totalTurnaroundTime / processCounter);
+        System.out.println("---------------------------------------------------------------------------------------");
+
+        System.out.println("process number = " + processCounter);
         System.out.println("SJF Scheduling completed.");
     }
 
-    // Round-Robin (RR) Scheduling
+    
+    
     public void rrSchedule() {
         int currentTime = 0;
+        int processCounter = 0;
+        int quantum = 8;
 
-        // تحويل readyQueue إلى LinkedList لدعم Round-Robin
+        // التحقق من أن readyQueue ليست فارغة
+        if (readyQueue.isEmpty()) {
+            System.out.println("Your readyQueue is empty.");
+            return;
+        }
+
+        // طباعة رأس الجدول
+        System.out.println("Job ID    Start Time     End Time       Burst Time");
+        System.out.println("--------------------------------------------------");
+
+        // نسخ العمليات إلى قائمة Round Robin
         Queue<PCB> rrQueue = new LinkedList<>(readyQueue);
 
         while (!rrQueue.isEmpty()) {
-            PCB process = rrQueue.poll();
-            int timeSlice = Math.min(quantum, process.remainingTime);
+            PCB process = rrQueue.poll(); // استخراج العملية الحالية
+            process.changeState("RUNNING");
 
-            process.setState("RUNNING");
-            System.out.println("Executing Process " + process.id + " for Time Slice: " + timeSlice + " ms");
+            int startTime = currentTime; // وقت بداية التنفيذ
+            int executedTime = Math.min(process.remainingTime, quantum); // مقدار الوقت المنفذ
+            currentTime += executedTime; // تحديث الوقت الحالي
+            process.remainingTime -= executedTime; // تقليل الوقت المتبقي
 
-            try {
-                Thread.sleep(timeSlice);
-            } catch (InterruptedException e) {
-                System.out.println("Process " + process.id + " execution interrupted.");
+            if (process.remainingTime > 0) {
+                // إذا لم تنته العملية، أعدها إلى القائمة
+                rrQueue.add(process);
+            } else {
+                // العملية انتهت
+                int endTime = currentTime;
+                process.changeState("TERMINATED");
+
+                // تحرير الذاكرة بعد التنفيذ
+                memory.releaseMemory(process.memoryRequired);
+
+                // طباعة النتائج للجدول
+                System.out.printf("%-10d %-15d %-15d %-15d\n",
+                        process.id, startTime, endTime, process.burstTime);
+
+                processCounter++;
             }
 
-            process.remainingTime -= timeSlice;
-            currentTime += timeSlice;
+            // تأخير بسيط لمحاكاة التنفيذ
+            try {
+                Thread.sleep(100); // Simulate delay between operations
+            } catch (InterruptedException e) {
+                System.out.println("Execution interrupted for process " + process.id);
+                Thread.currentThread().interrupt();
+            }
 
-            if (process.remainingTime <= 0) {
-                process.setState("TERMINATED");
-                SystemCalls.updateJobTimes(process, currentTime);
-                SystemCalls.releaseMemory(process, readyQueue, Main.availableMemory); // تحرير الذاكرة عند انتهاء العملية
-                System.out.println("Process " + process.id + " completed execution.");
-            } else {
-                process.setState("WAITING");
-                rrQueue.add(process); // إعادة العملية إلى القائمة إذا لم تنتهِ
-                System.out.println("Process " + process.id + " paused with Remaining Time: " + process.remainingTime + " ms");
+            // إخطار الخيوط الأخرى
+            synchronized (jobQueue) {
+                jobQueue.notifyAll(); // إخطار الخيوط الأخرى في حال تحرير الذاكرة
             }
         }
 
-        System.out.println("Round-Robin Scheduling completed.");
+        // طباعة عدد العمليات
+        System.out.println("--------------------------------------------------");
+        System.out.println("process number = " + processCounter);
+        System.out.println("RR Scheduling completed.");
     }
+
+
+    // Similar logic for SJF and RR scheduling (with proper memory release and notifications)
 }
