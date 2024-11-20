@@ -1,0 +1,51 @@
+import java.util.Queue;
+
+public class ExecuteReadyQueue {
+    private Queue<PCB> jobQueue;
+    private Queue<PCB> readyQueue;
+    private MemoryManagment memory;
+
+    public ExecuteReadyQueue(Queue<PCB> jobQueue, Queue<PCB> readyQueue, int quantum, MemoryManagment memory) {
+        this.jobQueue = jobQueue;
+        this.readyQueue = readyQueue;
+        this.memory = memory;
+    }
+
+    // First-Come-First-Serve (FCFS) Scheduling
+    public void fcfsSchedule() {
+        int currentTime = 0;
+
+        if (!readyQueue.isEmpty()) {
+            while (!readyQueue.isEmpty()) {
+                PCB process = readyQueue.poll(); // Get the first job from the ready queue
+                process.changeState("RUNNING");
+                System.out.println("Executing Process " + process.id + " with Burst Time: " + process.burstTime);
+
+                try {
+                    Thread.sleep(process.burstTime);
+                } catch (InterruptedException e) {
+                    System.out.println("Process " + process.id + " execution interrupted.");
+                }
+                
+                System.out.println("Process " + process.id + " has been terminated successfully." );
+                currentTime += process.burstTime;
+                process.changeState("TERMINATED");
+                SystemCalls.updateJobTimes(process, currentTime);
+
+                // Release memory after process execution
+                memory.releaseMemory(process.memoryRequired);
+                synchronized (jobQueue) {
+                    jobQueue.notifyAll();  // Notify waiting thread to check memory
+                }
+
+                System.out.println("Job " + process.id + " terminated. Memory released. Available Memory: " + memory.getAvailableMemory() + " MB.");
+            }
+        } else {
+            System.out.println("Your readyQueue is empty.");
+        }
+
+        System.out.println("FCFS Scheduling completed.");
+    }
+
+    // Similar logic for SJF and RR scheduling (with proper memory release and notifications)
+}
