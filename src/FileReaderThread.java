@@ -17,45 +17,42 @@ public class FileReaderThread extends Thread {
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = br.readLine()) != null) {
-                // Check if the line contains exactly one colon and one semicolon
-                if (line.contains(":") && line.contains(";") && line.indexOf(":") < line.indexOf(";")) {
-                    String[] parts = line.split(":|;");
+                // Split the line into parts using ":" and ";"
+                String[] parts = line.split(":|;");
 
-                    // Only accept lines with exactly three parts (id, burstTime, memoryRequired)
-                    if (parts.length == 3) {
-                        try {
-                            int id = Integer.parseInt(parts[0].trim());
-                            int burstTime = Integer.parseInt(parts[1].trim());
-                            int memoryRequired = Integer.parseInt(parts[2].trim());
+                // Check if the line contains exactly one colon, one semicolon, and splits into 3 parts
+                if (!line.contains(":") || !line.contains(";") || line.indexOf(":") >= line.indexOf(";") || parts.length != 3) {
+                    System.out.println("Invalid format, skipping line: " + line);
+                    continue;  // Skip this line if the format is invalid
+                }
 
-                            // Check if memory is within the valid range (1024 MB limit)
-                            if (memoryRequired > 1024) {
-                                System.out.println("Job " + id + " isn't supported due to memory limit.");
-                                continue;
-                            }
+                // Parse the parts and create a PCB
+                try {
+                    int id = Integer.parseInt(parts[0].trim());
+                    int burstTime = Integer.parseInt(parts[1].trim());
+                    int memoryRequired = Integer.parseInt(parts[2].trim());
 
-                            // Create PCB and add it to the jobQueue
-                            PCB job = SystemCalls.createPCB(id, burstTime, memoryRequired);
-                            synchronized (jobQueue) {
-                                jobQueue.add(job);
-                                jobQueue.notifyAll(); // Notify other threads waiting on jobQueue
-                            }
-
-                            System.out.println("Job " + id + " added to JobQueue: Burst Time = " + burstTime + " ms, Memory = " + memoryRequired + " MB.");
-
-                        } catch (NumberFormatException e) {
-                            System.out.println("Invalid number format in line, skipping: " + line);
-                        }
-                    } else {
-                        // Skip lines with incorrect number of parts (id:bt:mr should have exactly 3 parts)
-                        System.out.println("Invalid number format in line, skipping: " + line);
+                    // Check memory constraint (should not exceed 1024 MB)
+                    if (memoryRequired > 1024) {
+                        System.out.println("Job " + id + " is skipped due to memory limitation.");
+                        continue;  // Skip jobs that exceed memory limit
                     }
-                } else {
-                    // Skip lines that do not have exactly one colon and one semicolon
-                    System.out.println("Invalid number format in line, skipping: " + line);
+
+                    // Create PCB and add it to the jobQueue
+                    PCB job = SystemCalls.createPCB(id, burstTime, memoryRequired);
+                    synchronized (jobQueue) {
+                        jobQueue.add(job);
+                        jobQueue.notifyAll(); // Notify any waiting threads
+                    }
+
+                    System.out.println("Job " + id + " added to JobQueue: Burst Time = " + burstTime + " ms, Memory = " + memoryRequired + " MB.");
+                } catch (NumberFormatException e) {
+                    // Catch invalid number format for id, burstTime, or memoryRequired
+                    System.out.println("Invalid number format, skipping: " + line);
                 }
             }
         } catch (IOException e) {
+            // Handle file reading errors
             System.out.println("Error reading file: " + e.getMessage());
         }
     }
