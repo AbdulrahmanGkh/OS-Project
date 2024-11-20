@@ -1,0 +1,25 @@
+
+public class MemoryManagment {
+	
+	private int availableMemory;
+	
+	public MemoryManagment(int MemorySize) {
+		
+		availableMemory = MemorySize;
+		
+	}
+
+	public void allocateMemory(int size) {
+		 availableMemory -= size;
+	}
+
+	public void releaseMemory(int size) {
+		availableMemory += size;
+	}
+
+	public int getAvailableMemory() {
+		return availableMemory;
+	}
+
+
+}
