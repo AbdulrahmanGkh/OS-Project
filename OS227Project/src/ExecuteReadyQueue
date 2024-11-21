@@ -84,33 +84,19 @@ public class ExecuteReadyQueue {
 
 
     
-    public void sjfSchedule() {
+     public void sjfSchedule() {
         int currentTime = 0;
         int totalWaitingTime = 0;
         int totalTurnaroundTime = 0;
         int processCounter = 0;
 
-        // الانتظار حتى يتم ملء readyQueue
-        synchronized (readyQueue) {
-            while (readyQueue.isEmpty()) {
-                try {
-                    System.out.println("Waiting for readyQueue to be filled...");
-                    readyQueue.wait(); // انتظر حتى يتم إخطارك بأن readyQueue ممتلئة
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    System.out.println("SJF Schedule interrupted.");
-                    return;
-                }
-            }
-        }
-
         // إنشاء PriorityQueue وترتيب العمليات
         PriorityQueue<PCB> sjfQueue = new PriorityQueue<>(Comparator.comparingInt(p -> p.burstTime));
-        sjfQueue.addAll(readyQueue);
+        sjfQueue.addAll(jobQueue);
 
         // طباعة رأس الجدول
-        System.out.println("Job ID    Start Time     End Time       Burst Time     Waiting Time   Turnaround Time");
-        System.out.println("---------------------------------------------------------------------------------------");
+        System.out.println("Job ID    Start Time     End Time       Burst Time     Waiting Time   Turnaround Time   Used Memory   Available Memory");
+        System.out.println("---------------------------------------------------------------------------------------------------------------");
 
         // معالجة العمليات في PriorityQueue
         while (!sjfQueue.isEmpty()) {
@@ -135,9 +121,14 @@ public class ExecuteReadyQueue {
             process.setWaitingTime(waitingTime);
             process.setTurnaroundTime(turnaroundTime);
 
+            // تحديث الذاكرة بعد التنفيذ
+            int usedMemory = process.memoryRequired;
+            memory.releaseMemory(usedMemory);
+            int availableMemory = memory.getAvailableMemory();
+
             // طباعة النتائج للجدول
-            System.out.printf("%-10d %-15d %-15d %-15d %-15d %-15d\n",
-                    process.id, startTime, endTime, process.burstTime, waitingTime, turnaroundTime);
+            System.out.printf("%-10d %-15d %-15d %-15d %-15d %-15d %-15d %-15d\n",
+                    process.id, startTime, endTime, process.burstTime, waitingTime, turnaroundTime, usedMemory, availableMemory);
 
             // تحديث الوقت الحالي
             currentTime += process.burstTime;
@@ -147,9 +138,6 @@ public class ExecuteReadyQueue {
             totalTurnaroundTime += turnaroundTime;
             processCounter++;
 
-            // تحرير الذاكرة بعد التنفيذ
-            memory.releaseMemory(process.memoryRequired);
-
             // إخطار الخيوط الأخرى إذا كانت تعتمد على تحرير الذاكرة
             synchronized (jobQueue) {
                 jobQueue.notifyAll(); // Notify waiting thread to check memory
@@ -157,10 +145,10 @@ public class ExecuteReadyQueue {
         }
 
         // طباعة المتوسطات
-        System.out.println("---------------------------------------------------------------------------------------");
-        System.out.printf("Averages   %-15s %-15s %-15s %-15.2f %-15.2f\n",
-                "", "", "", (double) totalWaitingTime / processCounter, (double) totalTurnaroundTime / processCounter);
-        System.out.println("---------------------------------------------------------------------------------------");
+        System.out.println("---------------------------------------------------------------------------------------------------------------");
+        System.out.printf("Averages   %-15s %-15s %-15s %-15s %-15s %-15.2f %-15.2f\n",
+                "", "", "", "", "", (double) totalWaitingTime / processCounter, (double) totalTurnaroundTime / processCounter);
+        System.out.println("---------------------------------------------------------------------------------------------------------------");
 
         System.out.println("process number = " + processCounter);
         System.out.println("SJF Scheduling completed.");
