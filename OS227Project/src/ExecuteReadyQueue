@@ -122,8 +122,8 @@ public class ExecuteReadyQueue {
             processCounter++;
 
             // إخطار أي خيوط تنتظر تحرير الذاكرة
-            synchronized (readyQueue) {
-                readyQueue.notifyAll();
+            synchronized (sjfQueue) {
+                sjfQueue.notifyAll();
             }
         }
 
