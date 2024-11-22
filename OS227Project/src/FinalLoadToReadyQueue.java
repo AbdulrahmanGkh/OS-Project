@@ -113,15 +113,16 @@ public class LoadToReadyQueue extends Thread {
                     System.out.println("Not enough memory for Job " + job.id + ". Waiting...");
 
                     // إعادة العملية إلى SJFQueue إذا لم يكن هناك ذاكرة كافية
-                    sjfQueue.add(job);
+                    
 
-                    try {
+               try {
                         sjfQueue.wait(); // انتظار تحرير الذاكرة
                     } catch (InterruptedException e) {
                         System.out.println("Thread interrupted while waiting for memory. Exiting...");
                         Thread.currentThread().interrupt();
                         return;
                     }
+                    
                 }
             }
         }
