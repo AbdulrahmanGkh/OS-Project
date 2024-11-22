@@ -73,50 +73,97 @@ public class LoadToReadyQueue extends Thread {
         System.out.println("Loading jobs using SJF...");
         PriorityQueue<PCB> sjfQueue = new PriorityQueue<>(Comparator.comparingInt(p -> p.burstTime));
 
-        // نقل العمليات إلى PriorityQueue
-        sjfQueue.addAll(jobQueue);
-        jobQueue.clear();
+        // التعامل مع jobQueue وتحميل البيانات إلى sjfQueue
+        synchronized (jobQueue) {
+            while (!jobQueue.isEmpty()) {
+                PCB job = jobQueue.poll();
 
-        while (!sjfQueue.isEmpty()) {
-            PCB job = sjfQueue.poll(); // استخراج العملية ذات أقل Burst Time
+                // تحقق من صلاحية العملية
+                if (job == null) {
+                    System.out.println("Error: Null job detected and skipped.");
+                    continue;
+                }
+                if (job.burstTime <= 0) {
+                    System.out.println("Error: Invalid burst time for Job " + job.id + ". Skipping this job.");
+                    continue;
+                }
+                if (job.memoryRequired <= 0) {
+                    System.out.println("Error: Invalid memory requirement for Job " + job.id + ". Skipping this job.");
+                    continue;
+                }
 
-            if (job.memoryRequired <= memory.getAvailableMemory()) {
-                readyQueue.add(job);
-                memory.allocateMemory(job.memoryRequired);
-                job.changeState("READY");
-                System.out.println("Job " + job.id + " loaded for SJF. Remaining Memory: " + memory.getAvailableMemory() + " MB.");
-            } else {
-                try {
+                // إضافة العملية إلى sjfQueue إذا كانت صالحة
+                sjfQueue.add(job);
+                System.out.println("Job " + job.id + " added to SJF Queue.");
+            }
+        }
+
+        // التعامل مع sjfQueue وتحميل البيانات إلى readyQueue
+        synchronized (sjfQueue) {
+            while (!sjfQueue.isEmpty()) {
+                PCB job = sjfQueue.poll();
+
+                // تحقق من توفر الذاكرة لتحميل العملية
+                if (job.memoryRequired <= memory.getAvailableMemory()) {
+                    readyQueue.add(job);
+                    memory.allocateMemory(job.memoryRequired);
+                    job.changeState("READY");
+                    System.out.println("Job " + job.id + " loaded into ReadyQueue. Remaining Memory: " + memory.getAvailableMemory() + " MB.");
+                } else {
                     System.out.println("Not enough memory for Job " + job.id + ". Waiting...");
-                    jobQueue.wait(); // انتظار تحرير الذاكرة
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    return;
+
+                    // إعادة العملية إلى SJFQueue إذا لم يكن هناك ذاكرة كافية
+                    sjfQueue.add(job);
+
+                    try {
+                        sjfQueue.wait(); // انتظار تحرير الذاكرة
+                    } catch (InterruptedException e) {
+                        System.out.println("Thread interrupted while waiting for memory. Exiting...");
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
                 }
             }
         }
+
+        System.out.println("All jobs successfully loaded into ReadyQueue.");
     }
+
 
     // Round Robin Loader
     private void loadRR() {
         System.out.println("Loading jobs using Round Robin with Quantum " + quantum + "...");
-        while (!jobQueue.isEmpty()) {
-            PCB job = jobQueue.poll();
 
-            if (job.memoryRequired <= memory.getAvailableMemory()) {
-                readyQueue.add(job);
-                memory.allocateMemory(job.memoryRequired);
-                job.changeState("READY");
-                System.out.println("Job " + job.id + " loaded for Round Robin. Remaining Memory: " + memory.getAvailableMemory() + " MB.");
-            } else {
+        synchronized (jobQueue) {
+            while (!jobQueue.isEmpty()) {
+                PCB job = jobQueue.peek(); // الحصول على العملية الأولى بدون إزالتها
+
+                if (job.memoryRequired <= memory.getAvailableMemory()) {
+                    jobQueue.poll(); // إزالة العملية من jobQueue
+                    readyQueue.add(job); // إضافة العملية إلى readyQueue
+                    memory.allocateMemory(job.memoryRequired); // تخصيص الذاكرة
+                    job.changeState("READY"); // تحديث حالة العملية
+                    System.out.println("Job " + job.id + " loaded for Round Robin. Remaining Memory: " + memory.getAvailableMemory() + " MB.");
+                } else {
+                    try {
+                        System.out.println("Not enough memory for Job " + job.id + ". Waiting...");
+                        jobQueue.wait(); // انتظار تحرير الذاكرة
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        System.out.println("Loader interrupted while waiting for memory.");
+                        return;
+                    }
+                }
+
                 try {
-                    System.out.println("Not enough memory for Job " + job.id + ". Waiting...");
-                    jobQueue.wait(); // انتظار تحرير الذاكرة
+                    Thread.sleep(100); // محاكاة التأخير
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                    System.out.println("Loader interrupted during delay.");
                     return;
                 }
             }
         }
     }
+
 }
