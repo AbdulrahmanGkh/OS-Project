@@ -7,6 +7,7 @@ public class ExecuteReadyQueue {
     private Queue<PCB> jobQueue;
     private Queue<PCB> readyQueue;
     private Queue<PCB> PriorityQueue ;
+    private PriorityQueue<PCB> sjfQueue;
     private MemoryManagment memory;
 
     public ExecuteReadyQueue(Queue<PCB> jobQueue, Queue<PCB> readyQueue, int quantum, MemoryManagment memory) {
@@ -85,72 +86,47 @@ public class ExecuteReadyQueue {
         int totalTurnaroundTime = 0;
         int processCounter = 0;
 
-        // إنشاء PriorityQueue وترتيب العمليات
-        PriorityQueue<PCB> sjfQueue = new PriorityQueue<>(Comparator.comparingInt(p -> p.burstTime));
-        while (!jobQueue.isEmpty()) {
-            PCB process = jobQueue.poll(); // استخراج العملية من jobQueue
-            sjfQueue.add(process);         // إضافتها إلى sjfQueue
-        }
+        System.out.println("Executing SJF Scheduling...");
 
-        System.out.println("SJF Queue before execution:");
-        for (PCB process : sjfQueue) {
-            System.out.println("Process ID: " + process.id + ", Burst Time: " + process.burstTime + ", Memory Required: " + process.memoryRequired + " MB");
-        }
-        System.out.println("ready Queue before execution:");
-        for (PCB process : readyQueue) {
-            System.out.println("Process ID: " + process.id + ", Burst Time: " + process.burstTime + ", Memory Required: " + process.memoryRequired + " MB");
-        }
-
-        
-
-        // معالجة العمليات في PriorityQueue
-        while (!sjfQueue.isEmpty()) {
-            PCB process = sjfQueue.poll(); // استخراج العملية ذات أقل Burst Time
+        // معالجة العمليات في ReadyQueue
+        while (!readyQueue.isEmpty()) {
+            PCB process = readyQueue.poll();
             process.changeState("RUNNING");
 
-            int startTime = currentTime; // وقت بداية التنفيذ
-            int endTime = startTime + process.burstTime; // وقت نهاية التنفيذ
+            int startTime = currentTime;
+            int endTime = startTime + process.burstTime;
 
-            // تنفيذ العملية
             try {
                 Thread.sleep(process.burstTime); // محاكاة وقت التنفيذ
             } catch (InterruptedException e) {
                 System.out.println("Process " + process.id + " execution interrupted.");
             }
 
-            // حساب أوقات الانتظار والالتفاف
-            int waitingTime = startTime; // Waiting Time
-            int turnaroundTime = endTime; // Turnaround Time
+            // تحرير الذاكرة بعد التنفيذ
+            memory.releaseMemory(process.memoryRequired);
 
-            // تحديث القيم في الـ PCB
+            // تحديث القيم وحساب الأوقات
+            int waitingTime = startTime;
+            int turnaroundTime = endTime;
+
             process.setWaitingTime(waitingTime);
             process.setTurnaroundTime(turnaroundTime);
 
-            // تحديث الذاكرة بعد التنفيذ
-            int usedMemory = process.memoryRequired;
-            memory.releaseMemory(usedMemory);
-            int availableMemory = memory.getAvailableMemory();
-
-            // طباعة تتبع العملية
             System.out.println("Process " + process.id + " executed. Start Time: " + startTime + 
-                    ", End Time: " + endTime + ", Used Memory: " + usedMemory + 
-                    " MB, Available Memory: " + availableMemory + " MB");
+                    ", End Time: " + endTime + ", Used Memory: " + process.memoryRequired + 
+                    " MB, Available Memory: " + memory.getAvailableMemory() + " MB");
 
-            // تحديث الوقت الحالي
             currentTime += process.burstTime;
-
-            // تحديث الأوقات الإجمالية
             totalWaitingTime += waitingTime;
             totalTurnaroundTime += turnaroundTime;
             processCounter++;
 
-            // إخطار الخيوط الأخرى إذا كانت تعتمد على تحرير الذاكرة
-            synchronized (jobQueue) {
-                jobQueue.notifyAll(); // Notify waiting thread to check memory
+            // إخطار أي خيوط تنتظر تحرير الذاكرة
+            synchronized (readyQueue) {
+                readyQueue.notifyAll();
             }
         }
 
-        // طباعة ملخص العمليات
         System.out.println("SJF Scheduling completed.");
         System.out.println("Total processes executed: " + processCounter);
         System.out.printf("Average Waiting Time: %.2f ms, Average Turnaround Time: %.2f ms\n",
@@ -166,13 +142,21 @@ public class ExecuteReadyQueue {
 
         // التحقق من أن readyQueue ليست فارغة
         if (readyQueue.isEmpty()) {
-            System.out.println("Your readyQueue is empty.");
-            return;
+            System.out.println("ReadyQueue is empty. Reloading from JobQueue...");
+            while (!jobQueue.isEmpty()) {
+                PCB process = jobQueue.poll();
+                readyQueue.add(process);
+                memory.allocateMemory(process.memoryRequired); // تخصيص الذاكرة للعمليات الجديدة
+                process.changeState("READY");
+                System.out.println("Job " + process.id + " loaded into ReadyQueue. Remaining Memory: " + memory.getAvailableMemory() + " MB.");
+            }
         }
 
-        // طباعة رأس الجدول
-        System.out.println("Job ID    Start Time     End Time       Burst Time");
-        System.out.println("--------------------------------------------------");
+        // التحقق مرة أخرى بعد إعادة التحميل
+        if (readyQueue.isEmpty()) {
+            System.out.println("ReadyQueue is still empty. No processes to schedule.");
+            return;
+        }
 
         // نسخ العمليات إلى قائمة Round Robin
         Queue<PCB> rrQueue = new LinkedList<>(readyQueue);
@@ -191,16 +175,8 @@ public class ExecuteReadyQueue {
                 rrQueue.add(process);
             } else {
                 // العملية انتهت
-                int endTime = currentTime;
                 process.changeState("TERMINATED");
-
-                // تحرير الذاكرة بعد التنفيذ
-                memory.releaseMemory(process.memoryRequired);
-
-                // طباعة النتائج للجدول
-                System.out.printf("%-10d %-15d %-15d %-15d\n",
-                        process.id, startTime, endTime, process.burstTime);
-
+                memory.releaseMemory(process.memoryRequired); // تحرير الذاكرة بعد التنفيذ
                 processCounter++;
             }
 
@@ -218,10 +194,9 @@ public class ExecuteReadyQueue {
             }
         }
 
-        // طباعة عدد العمليات
-        System.out.println("--------------------------------------------------");
-        System.out.println("process number = " + processCounter);
+        // إنهاء الجدولة
         System.out.println("RR Scheduling completed.");
+        System.out.println("Total processes executed: " + processCounter);
     }
 
 
