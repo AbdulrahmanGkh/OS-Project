@@ -72,7 +72,7 @@ public class LoadToReadyQueue extends Thread {
     private void loadSJF() {
         System.out.println("Loading jobs using SJF...");
         PriorityQueue<PCB> sjfQueue = new PriorityQueue<>(Comparator.comparingInt(p -> p.burstTime));
-
+/*
         // التعامل مع jobQueue وتحميل البيانات إلى sjfQueue
         synchronized (jobQueue) {
             while (!jobQueue.isEmpty()) {
@@ -91,42 +91,62 @@ public class LoadToReadyQueue extends Thread {
                     System.out.println("Error: Invalid memory requirement for Job " + job.id + ". Skipping this job.");
                     continue;
                 }
-
-                // إضافة العملية إلى sjfQueue إذا كانت صالحة
+                if (job.memoryRequired > memory.getAvailableMemory()) {
+                    System.out.println("Job " + job.id + " isn't supported due to memory limit. Skipping this job.");
+                    continue;
+                }
                 sjfQueue.add(job);
                 System.out.println("Job " + job.id + " added to SJF Queue.");
+            
             }
+
+            try {
+                Thread.sleep(100); // Simulate delay between operations
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        
         }
+      */
+     
 
         // التعامل مع sjfQueue وتحميل البيانات إلى readyQueue
         synchronized (sjfQueue) {
             while (!sjfQueue.isEmpty()) {
-                PCB job = sjfQueue.poll();
+                PCB job = sjfQueue.peek();
 
                 // تحقق من توفر الذاكرة لتحميل العملية
                 if (job.memoryRequired <= memory.getAvailableMemory()) {
-                    readyQueue.add(job);
+                    sjfQueue.poll(); // Remove the job from tempQueue, not jobQueue
+                    readyQueue.add(job); // Add job to readyQueue
                     memory.allocateMemory(job.memoryRequired);
                     job.changeState("READY");
-                    System.out.println("Job " + job.id + " loaded into ReadyQueue. Remaining Memory: " + memory.getAvailableMemory() + " MB.");
+                    System.out.println("Job " + job.id + " loaded into memory. Remaining Memory: " + memory.getAvailableMemory() + " MB.");
+                    synchronized (readyQueue) {
+                        readyQueue.notifyAll();
+                    }
                 } else {
-                    System.out.println("Not enough memory for Job " + job.id + ". Waiting...");
-
-                    // إعادة العملية إلى SJFQueue إذا لم يكن هناك ذاكرة كافية
-                    
-
-               try {
-                        sjfQueue.wait(); // انتظار تحرير الذاكرة
+                    try {
+                        // Wait for memory to become available
+                        System.out.println("Not enough memory, waiting... process: " + job.id );
+                        sjfQueue.wait(); // Wait for memory to be released
                     } catch (InterruptedException e) {
-                        System.out.println("Thread interrupted while waiting for memory. Exiting...");
                         Thread.currentThread().interrupt();
                         return;
                     }
-                    
+                }
+
+                try {
+                    Thread.sleep(100); // Simulate delay between operations
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
                 }
             }
-        }
 
+        }
+        
         System.out.println("All jobs successfully loaded into ReadyQueue.");
     }
 
