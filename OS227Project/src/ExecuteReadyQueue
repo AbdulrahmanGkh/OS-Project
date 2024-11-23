@@ -14,6 +14,7 @@ public class ExecuteReadyQueue {
         this.jobQueue = jobQueue;
         this.readyQueue = readyQueue;
         this.memory = memory;
+       // this.sjfQueue = new PriorityQueue<>(Comparator.comparingInt(p -> p.burstTime));
     }
 
     // First-Come-First-Serve (FCFS) Scheduling
@@ -85,6 +86,23 @@ public class ExecuteReadyQueue {
         int totalWaitingTime = 0;
         int totalTurnaroundTime = 0;
         int processCounter = 0;
+        this.sjfQueue = new PriorityQueue<>(Comparator.comparingInt(p -> p.burstTime));
+        
+        while (!jobQueue.isEmpty()) {
+            PCB process = jobQueue.poll();
+            if (process != null && process.burstTime > 0 && process.memoryRequired > 0) {
+                sjfQueue.add(process);
+                System.out.println("Job " + process.id + " added to SJF Queue.");
+            } else {
+                System.out.println("Invalid job detected and skipped.");
+                synchronized (jobQueue) {
+                    jobQueue.notifyAll();
+                }
+            }
+          
+        
+        }
+
 
         System.out.println("Executing SJF Scheduling...");
 
