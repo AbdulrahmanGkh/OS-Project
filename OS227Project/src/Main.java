@@ -47,7 +47,7 @@ public class Main {
             }
 
             // تحميل العمليات بناءً على اختيار المستخدم
-            LoadToReadyQueue loader = new LoadToReadyQueue(sjfQueue,readyQueue, memory, choice, quantum);
+            LoadToReadyQueue loader = new LoadToReadyQueue(jobQueue,readyQueue, memory, choice, quantum);
             loader.start();
            
 
