@@ -1,0 +1,65 @@
+def number_to_words(num):
+    # القيم الأساسية للأرقام
+    ones = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"]
+    tens = ["", "عشر", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"]
+    teens = ["", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"]
+
+    # إذا كان الرقم صفر
+    if num == 0:
+        return "صفر"
+
+    # لتحويل الأرقام من 1 إلى 99
+    def two_digit_to_words(n):
+        if n < 10:
+            return ones[n]
+        elif 10 < n < 20:
+            return teens[n - 10]
+        elif n % 10 == 0:
+            return tens[n // 10]
+        else:
+            return ones[n % 10] + " و " + tens[n // 10]
+
+    # لتحويل الأرقام من 1 إلى 999
+    def three_digit_to_words(n):
+        if n == 100:
+            return "مئة"
+        elif n == 200:
+            return "مئتان"
+        elif n < 100:
+            return two_digit_to_words(n)
+        elif n % 100 == 0:
+            return ones[n // 100] + " مئة"
+        else:
+            return ones[n // 100] + " مئة و " + two_digit_to_words(n % 100)
+
+    # لتحويل الأرقام من 1 إلى مليون
+    def large_number_to_words(n):
+        if n < 1000:
+            return three_digit_to_words(n)
+        elif n == 1000:
+            return "ألف"
+        elif n == 2000:
+            return "ألفان"
+        elif n % 1000 == 0:
+            if 3 <= n // 1000 <= 9:
+                return ones[n // 1000] + " آلاف"
+            else:
+                return three_digit_to_words(n // 1000) + " ألف"
+        else:
+            if n // 1000 == 1:
+                return "ألف و " + three_digit_to_words(n % 1000)
+            elif n // 1000 == 2:
+                return "ألفان و " + three_digit_to_words(n % 1000)
+            elif 3 <= n // 1000 <= 9:
+                return ones[n // 1000] + " آلاف و " + three_digit_to_words(n % 1000)
+            else:
+                return three_digit_to_words(n // 1000) + " ألف و " + three_digit_to_words(n % 1000)
+
+    if num == 1000000:
+        return "مليون"
+
+    return large_number_to_words(num)
+
+# اختبار البرنامج
+num = int(input("أدخل رقماً بين 0 و 1,000,000: "))
+print(f"{number_to_words(num)}")
